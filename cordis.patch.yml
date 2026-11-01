@@ -1,0 +1,41 @@
+# dsh-plugin-background-compaction - bundle patch for DeepSeek Harness
+#
+# Installing this package with
+#   dsh plugin --profile <name> add <path/to/dsh-plugin-background-compaction>
+# replaces the stock `compaction-basic` service with `BackgroundCompactionEngine`.
+#
+# DSH allows one `ctx.compaction` service per context, so `compaction-basic` must be
+# disabled here. Base-engine options (`thresholdRatio`, `headroomTokens`, `retainRatio`,
+# `retainTokens`, `maxTokens`, `modelPolicies`, `auto`, etc.) are omitted below so
+# `BasicCompactionEngine`'s own stock defaults (`thresholdRatio: 0.8` of contextWindow,
+# `headroomTokens: 65536`, `retainRatio: 0.16`, `auto: true`) apply unchanged; set
+# `enabled: false` below to fall back to 100% stock compaction behaviour without
+# removing the plugin.
+- id: compaction-basic
+  disabled: true
+
+- insert:
+    - id: background-compaction
+      name: dsh-plugin-background-compaction
+      config:
+        # Master switch for background precomputation; false = pure stock compaction-basic.
+        enabled: true
+        # Start speculative summarization at this fraction of the base engine's threshold.
+        precomputeAtRatio: 0.72
+        # Skip spans smaller than this many tokens.
+        minShadowTokens: 2000
+        # Discard an unused held summary after this long (ms).
+        heldTtlMs: 300000
+        # Quiet period before a precompute pass starts (ms).
+        debounceMs: 1500
+        # Maximum concurrent background summarization calls across all sessions.
+        maxConcurrent: 1
+        # Maximum sessions holding a summary simultaneously before oldest eviction.
+        maxSessions: 64
+        # Sliding-window hit-rate circuit breaker.
+        gateEnabled: true
+        gateWindow: 6
+        gateMinHitRate: 0.5
+        gateCooldownMs: 300000
+        # Emit `[bgc]` diagnostic lines (DBG_BGC=1 in the environment enables this too).
+        trace: false
