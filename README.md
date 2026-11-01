@@ -8,11 +8,13 @@ time**. Once the conversation crosses a watermark it starts a speculative summar
 background, holds the result, and when the hard threshold is reached it serves the held summary
 instantly instead of calling the model.
 
-## How it works
+## Architecture & How it works
 
 The plugin is a **replacement for `compaction-basic`**, not a side-car. DSH mounts exactly one
 `CompactionEngine` as `ctx.compaction`, so a plugin that wants to influence compaction has to be
-that service:
+that service.
+
+![Architecture & Execution Pipeline](figures/fig_architecture.png)
 
 ```
                        watermark (threshold x 0.72)
