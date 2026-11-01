@@ -1,4 +1,10 @@
-﻿node_modules/
+node_modules/
 lib/
 dist-tests/
 *.tsbuildinfo
+
+# packaging artifacts — produced by `npm pack`, attached to GitHub Releases
+*.tgz
+
+# benchmark noise — the .json summaries are the evidence, the raw streams are not
+benchmark/results/*.log
