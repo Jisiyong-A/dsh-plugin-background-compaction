@@ -194,3 +194,60 @@ served at the threshold, and the base engine commits a `compaction/summary` tran
   and the plugin degrades to stock behaviour. It never speculates while already at pressure.
 - **One engine per context.** Because `ctx.compaction` is single-implementation, this plugin
   cannot run beside `compaction-basic`; it replaces it.
+
+## Technical contributions
+
+**1. Pinning the span ahead of time.** The naive way to precompute a summary — summarise "the
+conversation so far" and splice it in later — does not work, because the foreground engine picks
+its compaction span *at the moment it fires*, and the tail has usually grown by then.
+`compactRegion(start, end)` re-derives its payload from immutable surface sequence numbers, so a
+summary computed for span `8..17` is still byte-identical when that same span is committed later.
+Speculation becomes viable only because the span is pinned to sequence numbers rather than to a
+token count.
+
+**2. Fingerprint-guarded commit.** Before spending a foreground call on a held summary, the plugin
+recomputes a SHA-256 over the system head, the shadowed messages, the tool definitions **and the
+effective summarizer target** `{ provider, model, maxTokens }`, and compares it against the value
+recorded at precompute time. A mismatch drops the entry and delegates to a single stock pass, so a
+stale prediction costs nothing instead of costing double.
+
+**3. Cache-prefix reuse as a design constraint.** The background call and the eventual commit
+share one prompt prefix, which is why speculation costs **+2.2% billed input** rather than doubling
+the bill. The pinned-span design exists to guarantee that the two calls hash to the same cache
+entry; the benchmark exists to prove it holds.
+
+**4. Prediction accounting that can fail safely.** Hits are booked only after `compactRegion`
+resolves, never when the summary is merely handed over. A sliding-window hit-rate breaker suspends
+speculation after bad predictions instead of burning tokens forever.
+
+**5. Fail-open by construction.** Every failure path — drift, expiry, pruner rewriting the surface,
+rejected commit, foreground takeover, `auto: false` — degrades to a single stock
+`compactIfNeeded()` pass. The plugin can be slower than stock; it cannot corrupt a session.
+
+**6. A measurement, not a claim.** Blocking latency is defined as the `compaction/start` ..
+`compaction/end` interval in the session event log, which is exactly the window in which the turn
+is frozen. That metric is what produced the numbers in [BENCHMARK.md](BENCHMARK.md) — including
+the ones that do not flatter this plugin.
+
+## Acknowledgements
+
+This plugin stands on [OpenCode](https://github.com/sst/opencode). The idea of *background
+compaction* — precompute the summary ahead of the threshold, hold it, and swap it in when pressure
+actually arrives — comes from OpenCode's work on ahead-of-time compaction summaries and its
+prompt-cache-aware handling of a held summary. That design is the reason this plugin exists at
+all; everything here is a port of the idea onto DSH's `CompactionEngine` model, where the
+`compaction/start` + `compaction/end` durability markers and the event-sourced session surface make
+the pinning problem look different than it does in a session that stores a plain message array.
+
+Thanks are equally due to:
+
+- [`@aiwayds/dsh-dcp`](https://github.com/fan56/dsh-dcp), which itself follows
+  [Opencode-DCP](https://github.com/fan56/dsh-dcp) and demonstrates the deterministic, zero-LLM
+  route. It is the arm this plugin cannot beat on cost, and benchmarking against it is what forced
+  the comparison in this README to be honest.
+- `@deepseek-ai/dsh-compaction-basic`, for leaving `summarize()` and `compactRegion()` open as an
+  extension surface instead of sealing compaction behind an interface that can only be replaced
+  wholesale.
+- The DSH plugin authors whose work on registry tooling and context management made the surrounding
+  ecosystem legible enough to measure against.
+
