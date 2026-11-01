@@ -8,6 +8,57 @@ time**. Once the conversation crosses a watermark it starts a speculative summar
 background, holds the result, and when the hard threshold is reached it serves the held summary
 instantly instead of calling the model.
 
+The turn is frozen for **7 ms instead of 16 s** — measured, not estimated. See
+[BENCHMARK.md](BENCHMARK.md) for the four-way comparison below and how to reproduce it.
+
+## How it compares
+
+Four compaction strategies exist in the DSH ecosystem today. They were run against an identical
+16-document, ~49 K-token read-and-recall task in the same harness, with the same model and the same
+trigger point (36,000 tokens). Three runs per arm, median shown.
+
+| arm | strategy | blocking | wall clock | billed in / out | facts kept |
+| --- | --- | ---: | ---: | ---: | :---: |
+| A | stock `compaction-basic` | **16.1 s** | 95.9 s | 150,978 / 1,024 | 3/3 |
+| B | `tool-result-pruner` + `compaction-basic` | **15.3 s** | 94.9 s | 158,196 / 1,021 | 3/3 |
+| C | [`@aiwayds/dsh-dcp`](https://github.com/fan56/dsh-dcp) (zero-LLM) | **12 ms** | 118.4 s | 199,068 / 529 | 3/3 |
+| D | **this plugin** | **7 ms** | 90.4 s | 154,249 / 983 | 3/3 |
+
+### Where this plugin actually wins
+
+- **The stall disappears.** 16,095 ms → 7 ms is 99.96% of the wait removed. Pruning tool output
+  first (arm B) buys only ~5%, because the cost is the model round trip, not the payload size.
+- **The summary is still semantic.** Unlike rule-based compaction, the checkpoint is written by the
+  model and can decide what mattered.
+- **It is nearly free.** Speculation costs **+2.2% billed input** and **+1.5% cached input** over
+  stock, because the foreground commit reuses the exact cache prefix the background call warmed.
+- **It fails open.** Every failure path degrades to a single stock foreground pass, never to a
+  corrupt session.
+
+### Where it loses, and to what
+
+- **It is not the fastest thing available.** `dsh-dcp` is within measurement noise (12 ms vs 7 ms).
+  Anyone optimising purely for blocking latency can get the same result with zero token cost.
+  This plugin trades a small, measurable token overhead for a *better summary*, not for a lower
+  number.
+- **It costs tokens that a deterministic compactor does not.** +2.2% input versus arm A, versus
+  arm C's zero background cost. On a pay-per-token budget with a cheap model, dsh-dcp is the
+  rational choice.
+- **It can waste a background call.** The base engine's `toolResultPruner` rewrites the surface
+  between precompute and commit, which invalidates the pinned span; the plugin detects this,
+  books a miss, and re-precomputes. Observed in 2 of 3 runs. Correct behaviour, but a real cost.
+- **Its advantage is conditional on the watermark being reached.** A single step that jumps past
+  the threshold skips the arming window entirely and the run falls back to foreground behaviour —
+  identical to stock.
+- **Fidelity is not proven better.** All four arms reproduced every fact in every run. This
+  benchmark does not establish that model-written checkpoints are more faithful than rule-based
+  ones; it would take a many-compaction workload to separate them.
+- **It replaces `compaction-basic`.** `ctx.compaction` is a single service, so it cannot run
+  alongside it. It *is* the compaction engine, not a companion to it.
+
+Read the full analysis, including the wasted-call trace and the threats to validity, in
+[BENCHMARK.md](BENCHMARK.md).
+
 ## Architecture & How it works
 
 The plugin is a **replacement for `compaction-basic`**, not a side-car. DSH mounts exactly one
@@ -129,6 +180,13 @@ served at the threshold, and the base engine commits a `compaction/summary` tran
 
 ## Limitations
 
+- **A background call can be wasted.** When `toolResultPruner` rewrites the surface between
+  precompute and commit, the pinned span no longer matches, the held summary is dropped and booked
+  as a miss, and a fresh one is computed. Observed in 2 of 3 benchmark runs. Correct behaviour, but
+  it costs one extra background summarization.
+- **Tokens are spent to buy latency.** +2.2% billed input versus stock compaction in the benchmark.
+  On a strict pay-per-token budget a deterministic compactor such as
+  [`dsh-dcp`](https://github.com/fan56/dsh-dcp) is cheaper.
 - **Headless re-injection.** The headless runner re-appends the full prompt package after a
   surface fold, which consumes most of the tokens a compaction just saved. Interactive sessions
   do not do this.

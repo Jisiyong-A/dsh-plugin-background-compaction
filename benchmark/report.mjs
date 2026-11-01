@@ -18,10 +18,10 @@ const RESULTS = join(HERE, 'results')
 const ARMS = ['a', 'b', 'c', 'd']
 
 const SHORT = {
-  a: 'A — stock `compaction-basic`',
-  b: 'B — `tool-result-pruner` + `compaction-basic`',
-  c: 'C — `dsh-dcp` (deterministic, zero-LLM)',
-  d: 'D — `background-compaction` (this plugin)',
+  a: 'stock `compaction-basic`',
+  b: '`tool-result-pruner` + `compaction-basic`',
+  c: '`dsh-dcp` (deterministic, zero-LLM)',
+  d: '`background-compaction` (this plugin)',
 }
 
 function loadReps(arm) {
@@ -66,13 +66,21 @@ const median = (values) => {
 }
 const sec = (ms) => (median(ms) === undefined ? '—' : (median(ms) / 1000).toFixed(1))
 
+// Sub-second blocking is the whole point of this plugin, so it must not be
+// rounded to "0.0 s" and hidden behind the precision of the seconds format.
+const duration = (ms) => {
+  const value = median(ms)
+  if (value === undefined) return '—'
+  return value < 1000 ? `${Math.round(value)} ms` : `${(value / 1000).toFixed(1)} s`
+}
+
 function summarise(reps) {
   const m = reps.map((r) => r.data.metrics)
   return {
     samples: reps.length,
     transactions: median(m.map((x) => x.transactions)),
-    blockingTotalSec: sec(m.map((x) => x.totalBlockingMs)),
-    blockingPeakSec: sec(m.map((x) => x.peakBlockingMs)),
+    blockingTotal: duration(m.map((x) => x.totalBlockingMs)),
+    blockingPeak: duration(m.map((x) => x.peakBlockingMs)),
     peakCtx: median(m.map((x) => x.peakTotalTokens)),
     finalCtx: median(m.map((x) => x.finalTotalTokens)),
     input: median(m.map((x) => x.sumInputTokens)),
@@ -80,18 +88,19 @@ function summarise(reps) {
     output: median(m.map((x) => x.sumOutputTokens)),
     wallSec: (median(reps.map((r) => r.data.elapsedMs)) / 1000).toFixed(1),
     fidelityPass: reps.every((r) => r.data.fidelity.survived === r.data.fidelity.total),
-    fidelity: reps.map((r) => `${r.data.fidelity.survived}/${r.data.fidelity.total}`).join(' '),
+    fidelity: `${reps[0].data.fidelity.survived}/${reps[0].data.fidelity.total}`,
+    fidelityRuns: `${reps.filter((r) => r.data.fidelity.survived === r.data.fidelity.total).length}/${reps.length}`,
   }
 }
 
 const table = [
-  '| arm | strategy | compactions | blocking (median) | worst single | peak ctx | final ctx | billed in / cached / out | kept | n |',
-  '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | :---: | ---: |',
+  '| arm | strategy | compactions | blocking (median) | worst single | wall clock | peak ctx | final ctx | billed in / cached / out | facts kept | n |',
+  '| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | :---: | ---: |',
 ]
 for (const { arm, reps } of available) {
   const s = summarise(reps)
   table.push(
-    `| ${arm.toUpperCase()} | ${SHORT[arm]} | ${n(s.transactions)} | ${s.blockingTotalSec} s | ${s.blockingPeakSec} s | ${n(s.peakCtx)} | ${n(s.finalCtx)} | ${n(s.input)} / ${n(s.cached)} / ${n(s.output)} | ${s.fidelity} | ${s.samples} |`,
+    `| ${arm.toUpperCase()} | ${SHORT[arm]} | ${n(s.transactions)} | **${s.blockingTotal}** | ${s.blockingPeak} | ${s.wallSec} s | ${n(s.peakCtx)} | ${n(s.finalCtx)} | ${n(s.input)} / ${n(s.cached)} / ${n(s.output)} | ${s.fidelity} (${s.fidelityRuns}) | ${s.samples} |`,
   )
 }
 console.log(table.join('\n'))

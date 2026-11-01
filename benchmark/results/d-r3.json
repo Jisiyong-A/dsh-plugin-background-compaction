@@ -1,0 +1,64 @@
+{
+  "arm": "d",
+  "rep": 3,
+  "label": "D - background-compaction (this plugin)",
+  "session": "session-71779b52-d433-4f5e-924e-c381f6031c94",
+  "log": "C:\\Users\\siuchau_chi\\.dsh\\sessions\\--C-Users-siuchau_chi-Documents-deepseek-harness-default-workspace-dsh-plugin-background-compaction-benchmark-fixtures--\\session-71779b52-d433-4f5e-924e-c381f6031c94\\session.v4.jsonl.zstd",
+  "exitCode": 0,
+  "elapsedMs": 92382,
+  "metrics": {
+    "records": 142,
+    "wallClockMs": 85187,
+    "transactions": 1,
+    "abortedTransactions": 0,
+    "totalBlockingMs": 7,
+    "peakBlockingMs": 7,
+    "transactionsDetail": [
+      {
+        "compactionId": "7f8a327f-bb16-4f9c-aaa8-e319dce0bb45",
+        "turn": 1,
+        "startTime": 1793551770811,
+        "endTime": 1793551770818,
+        "blockingMs": 7,
+        "errored": false,
+        "summaryBytes": 4836,
+        "checkpointBytes": 2415
+      }
+    ],
+    "abortedDetail": [],
+    "providerSamples": 18,
+    "baselineTotalTokens": 19657,
+    "finalTotalTokens": 33921,
+    "peakTotalTokens": 35764,
+    "sumInputTokens": 153700,
+    "sumCachedTokens": 384333,
+    "sumOutputTokens": 983
+  },
+  "fidelity": {
+    "survived": 3,
+    "total": 3,
+    "results": [
+      {
+        "constant": "SERVICE_TOKEN_01: TKN-61467762",
+        "value": "TKN-61467762",
+        "survived": true
+      },
+      {
+        "constant": "LISTEN_PORT_01: 38543",
+        "value": "38543",
+        "survived": true
+      },
+      {
+        "constant": "RETENTION_DAYS_01: 44",
+        "value": "44",
+        "survived": true
+      }
+    ]
+  },
+  "expectedConstants": [
+    "SERVICE_TOKEN_01: TKN-61467762",
+    "LISTEN_PORT_01: 38543",
+    "RETENTION_DAYS_01: 44"
+  ],
+  "finalAnswer": "## Recorded constants (doc-01.md)\n\n- **SERVICE_TOKEN_01**: TKN-61467762\n- **LISTEN_PORT_01**: 38543\n- **RETENTION_DAYS_01**: 44"
+}
