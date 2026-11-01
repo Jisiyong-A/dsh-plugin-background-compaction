@@ -1,0 +1,27 @@
+# Arm D — this plugin: speculative background compaction.
+#
+# Replaces `compaction-basic` and keeps the LLM summarizer, but moves the call
+# off the critical path: at `precomputeAtRatio` x threshold it starts the summary
+# in the background, holds it, and commits it the instant pressure arrives.
+#
+# `run-arm.mjs` links the package for this arm only, so its bundled patch
+# (disable compaction-basic + insert itself) is the only other thing in play.
+- id: background-compaction
+  config:
+    thresholdRatio: 0.6
+    headroomTokens: 0
+    retainRatio: 0.1
+    maxTokens: 4096
+    auto: true
+    enabled: true
+    precomputeAtRatio: 0.72
+    minShadowTokens: 500
+    heldTtlMs: 300000
+    debounceMs: 300
+    maxConcurrent: 1
+    maxSessions: 8
+    gateEnabled: true
+    gateWindow: 6
+    gateMinHitRate: 0.5
+    gateCooldownMs: 300000
+    trace: false

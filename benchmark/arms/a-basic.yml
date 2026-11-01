@@ -1,0 +1,12 @@
+# Arm A — stock foreground LLM compaction (control).
+#
+# `compaction-basic` is the shipped backend: when the context crosses the
+# threshold the agent turn BLOCKS while an LLM writes a summary, then resumes.
+# Nothing is installed for this arm; the mechanism under test is stock.
+- id: compaction-basic
+  config:
+    thresholdRatio: 0.6
+    headroomTokens: 0
+    retainRatio: 0.1
+    maxTokens: 4096
+    auto: true

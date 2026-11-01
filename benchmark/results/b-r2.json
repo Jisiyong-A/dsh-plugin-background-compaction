@@ -1,0 +1,64 @@
+{
+  "arm": "b",
+  "rep": 2,
+  "label": "B - tool-result-pruner + compaction-basic",
+  "session": "session-d01043a9-841d-449d-85a7-33c5ec07b8f7",
+  "log": "C:\\Users\\siuchau_chi\\.dsh\\sessions\\--C-Users-siuchau_chi-Documents-deepseek-harness-default-workspace-dsh-plugin-background-compaction-benchmark-fixtures--\\session-d01043a9-841d-449d-85a7-33c5ec07b8f7\\session.v4.jsonl.zstd",
+  "exitCode": 0,
+  "elapsedMs": 91317,
+  "metrics": {
+    "records": 142,
+    "wallClockMs": 86705,
+    "transactions": 1,
+    "abortedTransactions": 0,
+    "totalBlockingMs": 17591,
+    "peakBlockingMs": 17591,
+    "transactionsDetail": [
+      {
+        "compactionId": "75020913-a46f-488a-90f0-d7c5ad95f806",
+        "turn": 1,
+        "startTime": 1793551093202,
+        "endTime": 1793551110793,
+        "blockingMs": 17591,
+        "errored": false,
+        "summaryBytes": 6524,
+        "checkpointBytes": 2641
+      }
+    ],
+    "abortedDetail": [],
+    "providerSamples": 18,
+    "baselineTotalTokens": 19612,
+    "finalTotalTokens": 28348,
+    "peakTotalTokens": 35661,
+    "sumInputTokens": 146712,
+    "sumCachedTokens": 385494,
+    "sumOutputTokens": 1021
+  },
+  "fidelity": {
+    "survived": 3,
+    "total": 3,
+    "results": [
+      {
+        "constant": "SERVICE_TOKEN_01: TKN-61467762",
+        "value": "TKN-61467762",
+        "survived": true
+      },
+      {
+        "constant": "LISTEN_PORT_01: 38543",
+        "value": "38543",
+        "survived": true
+      },
+      {
+        "constant": "RETENTION_DAYS_01: 44",
+        "value": "44",
+        "survived": true
+      }
+    ]
+  },
+  "expectedConstants": [
+    "SERVICE_TOKEN_01: TKN-61467762",
+    "LISTEN_PORT_01: 38543",
+    "RETENTION_DAYS_01: 44"
+  ],
+  "finalAnswer": "- SERVICE_TOKEN_01: TKN-61467762\n- LISTEN_PORT_01: 38543\n- RETENTION_DAYS_01: 44"
+}

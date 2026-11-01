@@ -1,0 +1,64 @@
+{
+  "arm": "a",
+  "rep": 3,
+  "label": "A - compaction-basic (foreground LLM)",
+  "session": "session-c51f2e4d-282e-48a1-93d5-a4eda88c4834",
+  "log": "C:\\Users\\siuchau_chi\\.dsh\\sessions\\--C-Users-siuchau_chi-Documents-deepseek-harness-default-workspace-dsh-plugin-background-compaction-benchmark-fixtures--\\session-c51f2e4d-282e-48a1-93d5-a4eda88c4834\\session.v4.jsonl.zstd",
+  "exitCode": 0,
+  "elapsedMs": 84794,
+  "metrics": {
+    "records": 142,
+    "wallClockMs": 80061,
+    "transactions": 1,
+    "abortedTransactions": 0,
+    "totalBlockingMs": 16095,
+    "peakBlockingMs": 16095,
+    "transactionsDetail": [
+      {
+        "compactionId": "ee24b6d6-9153-4944-8888-362f502c9a28",
+        "turn": 1,
+        "startTime": 1793551441015,
+        "endTime": 1793551457110,
+        "blockingMs": 16095,
+        "errored": false,
+        "summaryBytes": 5533,
+        "checkpointBytes": 2696
+      }
+    ],
+    "abortedDetail": [],
+    "providerSamples": 18,
+    "baselineTotalTokens": 19655,
+    "finalTotalTokens": 28530,
+    "peakTotalTokens": 35829,
+    "sumInputTokens": 158739,
+    "sumCachedTokens": 374913,
+    "sumOutputTokens": 1024
+  },
+  "fidelity": {
+    "survived": 3,
+    "total": 3,
+    "results": [
+      {
+        "constant": "SERVICE_TOKEN_01: TKN-61467762",
+        "value": "TKN-61467762",
+        "survived": true
+      },
+      {
+        "constant": "LISTEN_PORT_01: 38543",
+        "value": "38543",
+        "survived": true
+      },
+      {
+        "constant": "RETENTION_DAYS_01: 44",
+        "value": "44",
+        "survived": true
+      }
+    ]
+  },
+  "expectedConstants": [
+    "SERVICE_TOKEN_01: TKN-61467762",
+    "LISTEN_PORT_01: 38543",
+    "RETENTION_DAYS_01: 44"
+  ],
+  "finalAnswer": "`doc-01.md` 中 Recorded constants 的三项值如下：\n\n- **SERVICE_TOKEN_01**: `TKN-61467762`\n- **LISTEN_PORT_01**: `38543`\n- **RETENTION_DAYS_01**: `44`"
+}

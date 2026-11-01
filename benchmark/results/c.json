@@ -1,0 +1,63 @@
+{
+  "arm": "c",
+  "label": "C - dsh-dcp (deterministic, zero LLM)",
+  "session": "session-db8cfc31-c032-4290-95be-a722bcf1651f",
+  "log": "C:\\Users\\siuchau_chi\\.dsh\\sessions\\--C-Users-siuchau_chi-Documents-deepseek-harness-default-workspace-dsh-plugin-background-compaction-benchmark-fixtures--\\session-db8cfc31-c032-4290-95be-a722bcf1651f\\session.v4.jsonl.zstd",
+  "exitCode": 0,
+  "elapsedMs": 98719,
+  "metrics": {
+    "records": 145,
+    "wallClockMs": 93917,
+    "transactions": 1,
+    "abortedTransactions": 0,
+    "totalBlockingMs": 8,
+    "peakBlockingMs": 8,
+    "transactionsDetail": [
+      {
+        "compactionId": "41be5613-8622-46c4-8477-44f7018fb4eb",
+        "turn": 1,
+        "startTime": 1793550790580,
+        "endTime": 1793550790588,
+        "blockingMs": 8,
+        "errored": false,
+        "summaryBytes": 1867,
+        "checkpointBytes": 2169
+      }
+    ],
+    "abortedDetail": [],
+    "providerSamples": 18,
+    "baselineTotalTokens": 20013,
+    "finalTotalTokens": 33911,
+    "peakTotalTokens": 35025,
+    "sumInputTokens": 125692,
+    "sumCachedTokens": 410831,
+    "sumOutputTokens": 433
+  },
+  "fidelity": {
+    "survived": 3,
+    "total": 3,
+    "results": [
+      {
+        "constant": "SERVICE_TOKEN_01: TKN-61467762",
+        "value": "TKN-61467762",
+        "survived": true
+      },
+      {
+        "constant": "LISTEN_PORT_01: 38543",
+        "value": "38543",
+        "survived": true
+      },
+      {
+        "constant": "RETENTION_DAYS_01: 44",
+        "value": "44",
+        "survived": true
+      }
+    ]
+  },
+  "expectedConstants": [
+    "SERVICE_TOKEN_01: TKN-61467762",
+    "LISTEN_PORT_01: 38543",
+    "RETENTION_DAYS_01: 44"
+  ],
+  "finalAnswer": "doc-01.md 中 Recorded constants 的三项值如下：\n\n- **SERVICE_TOKEN_01**: TKN-61467762\n- **LISTEN_PORT_01**: 38543\n- **RETENTION_DAYS_01**: 44"
+}

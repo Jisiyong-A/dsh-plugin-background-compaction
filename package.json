@@ -1,6 +1,6 @@
 {
   "name": "dsh-plugin-background-compaction",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "type": "module",
   "description": "Speculative background compaction for DeepSeek Harness: precompute the summary at 72% of pressure, serve it instantly when compaction fires.",
   "license": "MIT",
@@ -43,8 +43,8 @@
     }
   },
   "peerDependencies": {
-    "@deepseek-ai/dsh-compaction": "0.2.1-rc.5",
-    "@deepseek-ai/dsh-compaction-basic": "0.2.1-rc.5"
+    "@deepseek-ai/dsh-compaction": ">=0.2.1-rc.5 <0.3.0-0",
+    "@deepseek-ai/dsh-compaction-basic": ">=0.2.1-rc.5 <0.3.0-0"
   },
   "peerDependenciesMeta": {
     "@deepseek-ai/dsh-compaction": {

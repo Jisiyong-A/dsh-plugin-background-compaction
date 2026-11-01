@@ -1,0 +1,74 @@
+{
+  "arm": "c",
+  "rep": 2,
+  "label": "C - dsh-dcp (deterministic, zero LLM)",
+  "session": "session-5b4f5047-4b98-473d-9e35-5ec917a5bf07",
+  "log": "C:\\Users\\siuchau_chi\\.dsh\\sessions\\--C-Users-siuchau_chi-Documents-deepseek-harness-default-workspace-dsh-plugin-background-compaction-benchmark-fixtures--\\session-5b4f5047-4b98-473d-9e35-5ec917a5bf07\\session.v4.jsonl.zstd",
+  "exitCode": 0,
+  "elapsedMs": 154079,
+  "metrics": {
+    "records": 190,
+    "wallClockMs": 148587,
+    "transactions": 2,
+    "abortedTransactions": 0,
+    "totalBlockingMs": 13,
+    "peakBlockingMs": 8,
+    "transactionsDetail": [
+      {
+        "compactionId": "bed5b89f-7dba-4dbc-a1d4-e1d16a386ba4",
+        "turn": 1,
+        "startTime": 1793551197499,
+        "endTime": 1793551197507,
+        "blockingMs": 8,
+        "errored": false,
+        "summaryBytes": 1867,
+        "checkpointBytes": 2169
+      },
+      {
+        "compactionId": "d727624c-50a8-4cdb-be1e-c9fdf03f3409",
+        "turn": 1,
+        "startTime": 1793551252639,
+        "endTime": 1793551252644,
+        "blockingMs": 5,
+        "errored": false,
+        "summaryBytes": 1759,
+        "checkpointBytes": 2060
+      }
+    ],
+    "abortedDetail": [],
+    "providerSamples": 24,
+    "baselineTotalTokens": 19778,
+    "finalTotalTokens": 32962,
+    "peakTotalTokens": 36288,
+    "sumInputTokens": 199068,
+    "sumCachedTokens": 527532,
+    "sumOutputTokens": 594
+  },
+  "fidelity": {
+    "survived": 3,
+    "total": 3,
+    "results": [
+      {
+        "constant": "SERVICE_TOKEN_01: TKN-61467762",
+        "value": "TKN-61467762",
+        "survived": true
+      },
+      {
+        "constant": "LISTEN_PORT_01: 38543",
+        "value": "38543",
+        "survived": true
+      },
+      {
+        "constant": "RETENTION_DAYS_01: 44",
+        "value": "44",
+        "survived": true
+      }
+    ]
+  },
+  "expectedConstants": [
+    "SERVICE_TOKEN_01: TKN-61467762",
+    "LISTEN_PORT_01: 38543",
+    "RETENTION_DAYS_01: 44"
+  ],
+  "finalAnswer": "doc-01.md 中 Recorded constants 的三项值如下：\n\n- SERVICE_TOKEN_01: TKN-61467762\n- LISTEN_PORT_01: 38543\n- RETENTION_DAYS_01: 44"
+}

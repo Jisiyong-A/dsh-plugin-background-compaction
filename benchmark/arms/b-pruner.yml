@@ -1,0 +1,18 @@
+# Arm B — built-in tool-result pruning + stock compaction.
+#
+# `tool-result-pruner` runs BEFORE `compaction-basic` and shrinks oversized tool
+# results in place. It is not a compaction backend: it is the shipped cheap lane.
+# The point of this arm is to check whether pruning alone can keep a large
+# document-reading task under the threshold, and if not, how much it saves before
+# the LLM summarizer has to run anyway.
+# Nothing is installed for this arm; both mechanisms are stock.
+- id: tool-result-pruner
+  disabled: false
+
+- id: compaction-basic
+  config:
+    thresholdRatio: 0.6
+    headroomTokens: 0
+    retainRatio: 0.1
+    maxTokens: 4096
+    auto: true

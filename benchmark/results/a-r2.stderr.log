@@ -1,0 +1,12 @@
+dsh: reasoning:
+The task requires strictly sequential file reading, specifically `doc-01.md` through `doc-16.md`.  Processing must be serial; no concurrent reads are permitted. The data extraction is withheld until all files are read, only then reporting the specified values from the first file.
+
+
+
+
+dsh: reasoning:
+I'm thinking through how to approach this.
+
+
+
+

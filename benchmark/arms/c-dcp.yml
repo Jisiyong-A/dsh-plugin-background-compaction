@@ -1,0 +1,24 @@
+# Arm C - dsh-dcp: deterministic, rule-based summarizer (zero LLM calls).
+#
+# `@aiwayds/dsh-dcp` is itself a `BasicCompactionEngine` subclass
+# (`export class DcpEngine extends BasicCompactionEngine`), so it shares the SAME
+# trigger, span selection and `compaction/start .. compaction/end` commit path as
+# arms A, B and D. The only thing it swaps is `summarize()`: instead of calling a
+# model it builds the checkpoint with a rule-based summarizer.
+#
+# That makes this the cleanest possible control: identical machinery, different
+# summarization strategy. Any difference in blocking latency is attributable to
+# the summarizer alone.
+#
+# `headroomTokens: 0` + explicit `maxTokens` are REQUIRED for a matched trial:
+# dsh-dcp inherits the base default `headroomTokens: 65536`, and on a 60000 window
+# that makes `messageBudget - headroom` negative, so the base spec resolver refuses
+# to compact at all. Numeric settings are therefore pinned identically to arms
+# A, B and D.
+- id: dsh-dcp
+  config:
+    thresholdRatio: 0.6
+    headroomTokens: 0
+    retainRatio: 0.1
+    maxTokens: 4096
+    language: en

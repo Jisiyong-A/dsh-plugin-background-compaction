@@ -1,0 +1,47 @@
+# Shared harness scaffolding for the compaction benchmark.
+#
+# Every arm shares: the same credential path, the same model, the same declared
+# context window, the same completion reservation and the same working directory.
+# Only the compaction stack changes between arms.
+#
+# `contextWindow` is deliberately small relative to the real model so that a
+# ~25k-token document corpus crosses the compaction threshold inside one task.
+# The DSH system head (system prompt + tool schemas) is a fixed ~19-20k tokens
+# and is never compactable, so a declared window under ~25k cannot compact at all.
+#
+# ISOLATION: this profile deliberately has NO compaction plugin installed. Each
+# arm's packages are added and removed by `run-arm.mjs` around its own run, so a
+# bundled patch from one arm can never leak into another. Arms A and B use only
+# stock packages and install nothing.
+
+- id: credentials
+  name: "@deepseek-ai/dsh-credentials-local"
+  disabled: false
+
+- id: llm-pi-ai
+  name: "@deepseek-ai/dsh-llm-pi-ai"
+  config:
+    providers:
+      gemini:
+        displayName: gemini
+        apiKeyEnv: GEMINI_API_KEY
+        api: openai-responses
+        baseURL: http://154.36.178.164:8045
+        models:
+          - id: gemini-3.8-flash-high
+            name: gemini-3.8-flash-high
+            contextWindow: 60000
+            maxTokens: 4096
+            input:
+              - text
+
+- id: agent-default-model
+  name: "@deepseek-ai/dsh-agent-default-model"
+  config:
+    provider: gemini
+    model: gemini-3.8-flash-high
+
+# Keep the interactive /compact command out of every arm so no arm can be
+# compacted by anything other than the mechanism under test.
+- id: command-compact
+  disabled: true
