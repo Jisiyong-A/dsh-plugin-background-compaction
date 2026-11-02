@@ -1,63 +1,116 @@
 # dsh-plugin-background-compaction
 
+**English** · [简体中文](README.zh-CN.md)
+
 Zero-latency context compaction for [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness).
 
-Stock compaction is **foreground**: the session reaches the pressure threshold and then waits
-for a summarizer call while the user watches a spinner. This plugin moves that work **ahead of
-time**. Once the conversation crosses a watermark it starts a speculative summary in the
-background, holds the result, and when the hard threshold is reached it serves the held summary
-instantly instead of calling the model.
+Stock compaction is **foreground**: the session hits the pressure threshold, and then you wait for
+a summarizer call while staring at a spinner. This plugin moves that work **ahead of time** — once
+the conversation crosses a watermark it starts a speculative summary in the background, holds the
+result, and when the hard threshold is reached it serves the held summary instantly instead of
+calling the model.
 
-The turn is frozen for **7 ms instead of 16 s** — measured, not estimated. See
-[BENCHMARK.md](BENCHMARK.md) for the four-way comparison below and how to reproduce it.
+Measured on an identical 16-document / ~49 K-token task: the turn is frozen for **7 ms instead of
+16,095 ms**. Reproduce it yourself from [`benchmark/`](benchmark/); the full analysis is in
+[BENCHMARK.md](BENCHMARK.md).
 
-## How it compares
+---
 
-Four compaction strategies exist in the DSH ecosystem today. They were run against an identical
-16-document, ~49 K-token read-and-recall task in the same harness, with the same model and the same
-trigger point (36,000 tokens). Three runs per arm, median shown.
+## Why this one
+
+Every compaction strategy in the DSH ecosystem attacks a different thing. Here is what this one
+does that the others do not.
+
+### 1. It removes the stall entirely — 99.96% of it
+
+| | stock `compaction-basic` | this plugin |
+| --- | ---: | ---: |
+| turn frozen during compaction | **16,095 ms** | **7 ms** |
+| worst single block | 16.1 s | 7 ms |
+
+That is a factor of ~2,300. The number is not an estimate: it is `compaction/end.time −
+compaction/start.time` read out of the session event log, median of three runs. The base engine
+writes `compaction/start` *before* it builds the summary input, so that interval is exactly the
+time the turn is frozen.
+
+### 2. Pruning tool output does not solve this — and the data proves it
+
+`tool-result-pruner` is the usual first thing people enable, and it is genuinely useful. But it
+prunes the **payload**, and the payload is not the cost. With the pruner on, the stall went from
+16.1 s to 15.3 s — **a 5% improvement**, because the 15 seconds are one round trip to the model,
+not the size of what you send it.
+
+This plugin does not compete with the pruner; it **runs it** before committing, so both layers
+stack. Pruning makes the compaction cheaper; background precomputation makes it invisible.
+
+### 3. You keep a real summary, not a rule engine's output
+
+The closest rival, [`@aiwayds/dsh-dcp`](https://github.com/fan56/dsh-dcp), is excellent — it is a
+`BasicCompactionEngine` subclass with the same trigger and commit path, swapping the LLM summarizer
+for a deterministic rule-based one. It matches this plugin on latency (12 ms vs 7 ms — noise).
+
+What it cannot do is **decide what mattered**. A rule-based summarizer preserves identifiers, paths,
+commands and error traces verbatim; the prose connecting them, the reason a decision was made, the
+half-finished line of reasoning that a later step depends on — that is model work. This plugin pays
+a small token cost to keep it.
+
+| | deterministic compaction (`dsh-dcp`) | this plugin |
+| --- | --- | --- |
+| summary produced by | rules | the model |
+| can compress semantics | no | yes |
+| background token cost | zero | ~2% (cache-amortised) |
+| failure mode | drops meaning no rule preserves | falls back to foreground |
+
+### 4. Speculation costs about 2%, not 100%
+
+The obvious objection to "call the model twice" is that it doubles the bill. It does not:
+
+| vs stock | delta |
+| --- | ---: |
+| billed input | **+2.2%** |
+| cached input | **+1.5%** |
+| output | **−4.0%** |
+
+The background call and the eventual commit share one prompt prefix, so the speculative pass runs
+almost entirely against an already-warm cache. That is the single hardest design constraint in the
+plugin — the pinned span exists to guarantee the two calls hash to the same cache entry — and the
+benchmark exists to prove it holds in practice.
+
+### 5. It cannot corrupt your session
+
+Every failure path degrades to a single stock `compaction-basic` pass, never to a damaged one:
+drift, TTL expiry, a pruner rewriting the surface, a rejected commit, a foreground takeover,
+`auto: false`. The worst case is exactly stock behaviour. There is no state this plugin can leave
+behind that the harness cannot read.
+
+### The scoreboard
+
+Four strategies, same harness, same model, same 36,000-token trigger point, three runs each,
+median shown.
 
 | arm | strategy | blocking | wall clock | billed in / out | facts kept |
 | --- | --- | ---: | ---: | ---: | :---: |
 | A | stock `compaction-basic` | **16.1 s** | 95.9 s | 150,978 / 1,024 | 3/3 |
 | B | `tool-result-pruner` + `compaction-basic` | **15.3 s** | 94.9 s | 158,196 / 1,021 | 3/3 |
-| C | [`@aiwayds/dsh-dcp`](https://github.com/fan56/dsh-dcp) (zero-LLM) | **12 ms** | 118.4 s | 199,068 / 529 | 3/3 |
+| C | [`dsh-dcp`](https://github.com/fan56/dsh-dcp) (zero-LLM) | **12 ms** | 118.4 s | 199,068 / 529 | 3/3 |
 | D | **this plugin** | **7 ms** | 90.4 s | 154,249 / 983 | 3/3 |
 
-### Where this plugin actually wins
+### When to choose something else
 
-- **The stall disappears.** 16,095 ms → 7 ms is 99.96% of the wait removed. Pruning tool output
-  first (arm B) buys only ~5%, because the cost is the model round trip, not the payload size.
-- **The summary is still semantic.** Unlike rule-based compaction, the checkpoint is written by the
-  model and can decide what mattered.
-- **It is nearly free.** Speculation costs **+2.2% billed input** and **+1.5% cached input** over
-  stock, because the foreground commit reuses the exact cache prefix the background call warmed.
-- **It fails open.** Every failure path degrades to a single stock foreground pass, never to a
-  corrupt session.
+Honesty is cheaper than a surprised user:
 
-### Where it loses, and to what
+- **Pure cost optimisation with a cheap model** → `dsh-dcp`. It is equally non-blocking and spends
+  zero background tokens.
+- **You do not have a second model call to spare** → `dsh-dcp` again, or just turn on
+  `tool-result-pruner` and accept a smaller saving.
+- **Fidelity is your hard requirement** → do not trust *any* compaction strategy, including this
+  one. All four arms kept every fact in this benchmark, which means the workload did not
+  discriminate; it does not mean compaction is lossless.
 
-- **It is not the fastest thing available.** `dsh-dcp` is within measurement noise (12 ms vs 7 ms).
-  Anyone optimising purely for blocking latency can get the same result with zero token cost.
-  This plugin trades a small, measurable token overhead for a *better summary*, not for a lower
-  number.
-- **It costs tokens that a deterministic compactor does not.** +2.2% input versus arm A, versus
-  arm C's zero background cost. On a pay-per-token budget with a cheap model, dsh-dcp is the
-  rational choice.
-- **It can waste a background call.** The base engine's `toolResultPruner` rewrites the surface
-  between precompute and commit, which invalidates the pinned span; the plugin detects this,
-  books a miss, and re-precomputes. Observed in 2 of 3 runs. Correct behaviour, but a real cost.
-- **Its advantage is conditional on the watermark being reached.** A single step that jumps past
-  the threshold skips the arming window entirely and the run falls back to foreground behaviour —
-  identical to stock.
-- **Fidelity is not proven better.** All four arms reproduced every fact in every run. This
-  benchmark does not establish that model-written checkpoints are more faithful than rule-based
-  ones; it would take a many-compaction workload to separate them.
-- **It replaces `compaction-basic`.** `ctx.compaction` is a single service, so it cannot run
-  alongside it. It *is* the compaction engine, not a companion to it.
+Everything else — including the wasted-background-call trace, the threats to validity and how to
+re-run it — is in [BENCHMARK.md](BENCHMARK.md).
 
-Read the full analysis, including the wasted-call trace and the threats to validity, in
-[BENCHMARK.md](BENCHMARK.md).
+---
 
 ## Architecture & How it works
 
@@ -178,6 +231,9 @@ End-to-end evidence inside a real `dsh --profile bc-headless` process is recorde
 lockstep with `BasicCompactionEngine`, precompute fires at the watermark, the held summary is
 served at the threshold, and the base engine commits a `compaction/summary` transaction.
 
+Cross-strategy evidence is in [BENCHMARK.md](BENCHMARK.md), reproducible from
+[`benchmark/`](benchmark/).
+
 ## Limitations
 
 - **A background call can be wasted.** When `toolResultPruner` rewrites the surface between
@@ -241,13 +297,15 @@ the pinning problem look different than it does in a session that stores a plain
 
 Thanks are equally due to:
 
-- [`@aiwayds/dsh-dcp`](https://github.com/fan56/dsh-dcp), which itself follows
-  [Opencode-DCP](https://github.com/fan56/dsh-dcp) and demonstrates the deterministic, zero-LLM
-  route. It is the arm this plugin cannot beat on cost, and benchmarking against it is what forced
-  the comparison in this README to be honest.
+- [`@aiwayds/dsh-dcp`](https://github.com/fan56/dsh-dcp), which follows Opencode-DCP and
+  demonstrates the deterministic, zero-LLM route. It is the arm this plugin cannot beat on cost,
+  and benchmarking against it is what forced the comparison in this README to be honest.
 - `@deepseek-ai/dsh-compaction-basic`, for leaving `summarize()` and `compactRegion()` open as an
   extension surface instead of sealing compaction behind an interface that can only be replaced
   wholesale.
 - The DSH plugin authors whose work on registry tooling and context management made the surrounding
   ecosystem legible enough to measure against.
 
+## License
+
+MIT
